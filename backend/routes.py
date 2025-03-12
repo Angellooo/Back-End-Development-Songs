@@ -51,3 +51,67 @@ def parse_json(data):
 ######################################################################
 # INSERT CODE HERE
 ######################################################################
+
+@app.route("/health")
+def health():
+    return {"status":"ok"}, 200
+    # Angello Gonzalez
+
+@app.route("/count")
+def count_songs():
+    songs_count = len(songs_list)
+    return {"count" : songs_count}, 200
+    # Angello Gonzalez
+
+@app.route("/song")
+def songs():
+    songs_docs = list(db.songs.find({}))
+    return {"songs":json_util.dumps(songs_docs)}, 200
+    # Angello Gonzalez
+
+@app.route("/song/<id>")
+def get_song_by_id(id):
+    song_single_doc = db.songs.find_one({"id":int(id)})
+    if song_single_doc:
+        return json_util.dumps(song_single_doc), 200
+    else:
+        return {"message": "song with id not found"}, 404
+    # Angello Gonzalez
+
+@app.route("/song", methods=['POST'])
+def create_song():
+    json_body = request.get_json()
+    if db.songs.find_one({"id":json_body['id']}):
+        return {"Message": f"song with id {json_body['id']} already present"}, 302
+    else:
+        insertion_response = db.songs.insert_one(json_body)
+        insertion_oid = str(insertion_response.inserted_id)
+        return {"inserted id":{"$oid":insertion_oid}}
+    # Angello Gonzalez
+
+@app.route("/song/<int:id>", methods=['PUT'])
+def update_song(id):
+    json_body = request.get_json()
+
+    if db.songs.find_one({"id":id}):
+        result = db.songs.update_one({"id":id}, {'$set':json_body})
+
+        if result.modified_count > 0:
+            modified_doc = db.songs.find_one({'id':id})
+            return json_util.dumps(modified_doc), 201
+
+        else:
+            return {"message":"song found, but nothing updated"}, 200
+
+    else:
+        return {"message": "song not found"}, 404
+    # Angello Gonzalez
+
+@app.route("/song/<int:id>", methods=['DELETE'])
+def delete_song(id):
+    result = db.songs.delete_one({'id':id})
+    if result.deleted_count > 0:
+        return {}, 204
+    else:
+        return {'message': 'song not found'}, 404
+    # Angello Gonzalez
